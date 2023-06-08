@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 byte-order = "0.3.0"
 nalgebra = { version="0.32.2" }
+num = "0.4.0"

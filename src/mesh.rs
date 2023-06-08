@@ -1,11 +1,21 @@
 use std::collections::HashMap;
 use std::ops::Range;
-use nalgebra::SVector;
+use nalgebra::{Scalar, SVector};
+
+#[derive(Clone, PartialOrd, PartialEq)]
+pub enum CellShapeName {
+    Triangle,
+    Rectangle,
+    Tetrahedron,
+    Prism,
+    Cube,
+}
 
 #[derive(Clone, PartialOrd, PartialEq)]
 pub struct CellShape {
     pub num_vertices: usize,
     faces: Vec<CellFace>,
+    pub name: CellShapeName,
 }
 
 #[derive(Clone, PartialOrd, PartialEq)]
@@ -14,14 +24,14 @@ struct CellFace {
     indices: Vec<usize>,
 }
 
-pub struct CellFaceRef<'a, const DIM: usize> {
-    msh: &'a UnstructuredMesh<DIM>,
+pub struct CellFaceRef<'a, T, const DIM: usize> {
+    msh: &'a UnstructuredMesh<T, DIM>,
     shape: &'a CellShape,
     id: usize,
     mesh_id: usize,
 }
 
-impl<'a, const DIM: usize> CellFaceRef<'a, DIM> {
+impl<'a, T: 'static, const DIM: usize> CellFaceRef<'a, T, DIM> {
     /// Returns the indices for this face as a vector
     pub fn indices(&self) -> Vec<usize> {
         self.shape.faces[self.id].indices.iter()
@@ -30,32 +40,37 @@ impl<'a, const DIM: usize> CellFaceRef<'a, DIM> {
     }
 
     /// Returns the vertices of this face as a vector
-    pub fn vertices(&self) -> Vec<&'a SVector<f64, DIM>> {
+    pub fn vertices(&self) -> Vec<&'a SVector<T, DIM>> {
         self.indices().iter()
             .map(|&i| &self.msh.vbo[i])
             .collect()
     }
 }
 
-pub struct FaceIter<'a, const DIM: usize> {
+pub struct FaceIter<'a, T, const DIM: usize> {
     shape: &'a CellShape,
     mesh_id: usize,
-    mesh: &'a UnstructuredMesh<DIM>,
+    mesh: &'a UnstructuredMesh<T, DIM>,
     face_id: usize,
 }
 
 impl CellShape {
     /// Creates an iterator that can be used to iterate over the cells faces. This is especially
     /// useful for converting the mesh into other formats.
-    pub fn face_iter<'a, const DIM: usize>(
-        &'a self, msh: &'a UnstructuredMesh<DIM>, mesh_id: usize
-    ) -> FaceIter<'_, DIM> {
+    pub fn face_iter<'a, T, const DIM: usize>(
+        &'a self, msh: &'a UnstructuredMesh<T, DIM>, mesh_id: usize
+    ) -> FaceIter<'_, T, DIM> {
         FaceIter {
             shape: self,
             mesh_id,
             mesh: msh,
             face_id: 0,
         }
+    }
+
+    /// Returns the number of faces for this cell shape
+    pub fn num_faces(&self) -> usize {
+        self.faces.len()
     }
 
     pub fn triangle() -> Self {
@@ -65,7 +80,8 @@ impl CellShape {
                 CellFace { num_vertices: 2, indices: vec![0, 1] },
                 CellFace { num_vertices: 2, indices: vec![1, 2] },
                 CellFace { num_vertices: 2, indices: vec![2, 0] },
-            ]
+            ],
+            name: CellShapeName::Triangle,
         }
     }
 
@@ -77,7 +93,8 @@ impl CellShape {
                 CellFace { num_vertices: 2, indices: vec![1, 2] },
                 CellFace { num_vertices: 2, indices: vec![2, 3] },
                 CellFace { num_vertices: 2, indices: vec![3, 0] },
-            ]
+            ],
+            name: CellShapeName::Rectangle,
         }
     }
 
@@ -89,7 +106,8 @@ impl CellShape {
                 CellFace { num_vertices: 3, indices: vec![1, 2, 3] },
                 CellFace { num_vertices: 3, indices: vec![0, 3, 2] },
                 CellFace { num_vertices: 3, indices: vec![3, 0, 1] },
-            ]
+            ],
+            name: CellShapeName::Tetrahedron,
         }
     }
 
@@ -102,7 +120,8 @@ impl CellShape {
                 CellFace { num_vertices: 3, indices: vec![4, 5, 2, 1] },
                 CellFace { num_vertices: 3, indices: vec![0, 2, 5, 3] },
                 CellFace { num_vertices: 3, indices: vec![3, 4, 1, 0] },
-            ]
+            ],
+            name: CellShapeName::Prism,
         }
     }
 
@@ -116,13 +135,14 @@ impl CellShape {
                 CellFace { num_vertices: 3, indices: vec![4, 7, 3, 0] },
                 CellFace { num_vertices: 3, indices: vec![2, 3, 7, 6] },
                 CellFace { num_vertices: 3, indices: vec![0, 1, 5, 4] },
-            ]
+            ],
+            name: CellShapeName::Cube,
         }
     }
 }
 
-impl<'a, const DIM: usize> Iterator for FaceIter<'a, DIM> {
-    type Item = CellFaceRef<'a, DIM>;
+impl<'a, T, const DIM: usize> Iterator for FaceIter<'a, T, DIM> {
+    type Item = CellFaceRef<'a, T, DIM>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.face_id < self.shape.faces.len() {
@@ -156,7 +176,7 @@ impl MeshRegion {
     }
 
     /// Creates an iterator over the mesh cells within this region of the mesh
-    pub fn iter<'a, const DIM: usize>(&'a self, mesh: &'a UnstructuredMesh<DIM>) -> IntoCellIter<'a, DIM> {
+    pub fn iter<'a, T, const DIM: usize>(&'a self, mesh: &'a UnstructuredMesh<T, DIM>) -> IntoCellIter<'a, T, DIM> {
         IntoCellIter {
             region: self,
             mesh,
@@ -164,14 +184,14 @@ impl MeshRegion {
     }
 }
 
-pub struct IntoCellIter<'a, const DIM: usize> {
+pub struct IntoCellIter<'a, T, const DIM: usize> {
     region: &'a MeshRegion,
-    mesh: &'a UnstructuredMesh<DIM>,
+    mesh: &'a UnstructuredMesh<T, DIM>,
 }
 
-impl<'a, const DIM: usize> IntoIterator for IntoCellIter<'a, DIM> {
-    type Item = MeshCell<'a, DIM>;
-    type IntoIter = CellIter<'a, DIM>;
+impl<'a, T, const DIM: usize> IntoIterator for IntoCellIter<'a, T, DIM> {
+    type Item = MeshCell<'a, T, DIM>;
+    type IntoIter = CellIter<'a, T, DIM>;
 
     fn into_iter(self) -> Self::IntoIter {
         CellIter {
@@ -182,25 +202,31 @@ impl<'a, const DIM: usize> IntoIterator for IntoCellIter<'a, DIM> {
     }
 }
 
-pub struct CellIter<'a, const DIM: usize> {
-    mesh: &'a UnstructuredMesh<DIM>,
+pub struct CellIter<'a, T, const DIM: usize> {
+    mesh: &'a UnstructuredMesh<T, DIM>,
     region: &'a MeshRegion,
     idx: usize,
 }
 
-pub struct MeshCell<'a, const DIM: usize> {
+pub struct MeshCell<'a, T, const DIM: usize> {
     mesh_id: usize,
-    mesh: &'a UnstructuredMesh<DIM>,
+    mesh: &'a UnstructuredMesh<T, DIM>,
     shape: &'a CellShape,
 }
 
-impl<'a, const DIM: usize> Iterator for CellIter<'a, DIM> {
-    type Item = MeshCell<'a, DIM>;
+impl<'a, T, const DIM: usize> MeshCell<'a, T, DIM> {
+    pub fn indices(&self) -> &[usize] {
+        &self.mesh.ibo[self.mesh_id..(self.mesh_id + self.shape.num_vertices)]
+    }
+}
+
+impl<'a, T, const DIM: usize> Iterator for CellIter<'a, T, DIM> {
+    type Item = MeshCell<'a, T, DIM>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.idx < self.region.num_cells() {
+        if self.idx < self.region.index_region.end {
             let i = self.idx;
-            self.idx += 1;
+            self.idx += self.region.shape.num_vertices;
             Some(MeshCell {
                 mesh_id: i,
                 mesh: self.mesh,
@@ -213,13 +239,13 @@ impl<'a, const DIM: usize> Iterator for CellIter<'a, DIM> {
 }
 
 /// This mesh struct represents an unstructured polygon mesh.
-pub struct UnstructuredMesh<const DIM: usize> {
-    vbo: Vec<SVector<f64, DIM>>,
+pub struct UnstructuredMesh<T, const DIM: usize> {
+    pub vbo: Vec<SVector<T, DIM>>,
     ibo: Vec<usize>,
     pub regions: HashMap<String, MeshRegion>
 }
 
-impl<const DIM: usize> UnstructuredMesh<DIM> {}
+impl<T, const DIM: usize> UnstructuredMesh<T, DIM> {}
 
 struct BuilderRegion {
     indices: Vec<usize>,
@@ -236,12 +262,13 @@ impl BuilderRegion {
     }
 }
 
-pub struct UnstructuredMeshBuilder<const DIM: usize> {
-    vertices: Vec<SVector<f64, DIM>>,
+pub struct UnstructuredMeshBuilder<T, const DIM: usize> {
+    vertices: Vec<SVector<T, DIM>>,
     regions: Vec<BuilderRegion>,
 }
 
-impl<const DIM: usize> UnstructuredMeshBuilder<DIM> {
+impl<T, const DIM: usize> UnstructuredMeshBuilder<T, DIM>
+where T: Copy + Clone + Scalar + PartialOrd + PartialEq {
     pub fn new() -> Self {
         UnstructuredMeshBuilder {
             vertices: Vec::new(),
@@ -258,7 +285,7 @@ impl<const DIM: usize> UnstructuredMeshBuilder<DIM> {
     }
 
     pub fn add_region(
-        mut self, name: String, shape: CellShape, vbo: Vec<SVector<f64, DIM>>, mut ibo: Vec<usize>
+        mut self, name: String, shape: CellShape, vbo: Vec<SVector<T, DIM>>, mut ibo: Vec<usize>
     ) -> Result<Self, ()> {
         if self.get_region(&name).is_some() {
             return Err(());
@@ -274,7 +301,7 @@ impl<const DIM: usize> UnstructuredMeshBuilder<DIM> {
         Ok(self)
     }
 
-    pub fn add_cell(mut self, region: &str, vbo: &[SVector<f64, DIM>], ibo: &[usize]) -> Result<Self, ()> {
+    pub fn add_cell(mut self, region: &str, vbo: &[SVector<T, DIM>], ibo: &[usize]) -> Result<Self, ()> {
         let offset = self.vertices.len();
         if let Some(region) = self.get_region_mut(region) {
             if region.shape.num_vertices != vbo.len() {
@@ -320,7 +347,7 @@ impl<const DIM: usize> UnstructuredMeshBuilder<DIM> {
     }
 
     /// Builds the an unstructured mesh from the mesh data contained in this mesh builder.
-    pub fn build(self) -> UnstructuredMesh<DIM> {
+    pub fn build(self) -> UnstructuredMesh<T, DIM> {
         let mut mesh_indices = Vec::new();
         let mut i = 0;
         let mut mesh_regions = HashMap::new();
