@@ -3,15 +3,17 @@ mod writer;
 mod legacy;
 mod data;
 
+pub mod prelude;
+
+
+
 #[cfg(test)]
 mod tests {
     use std::error::Error;
     use std::fs::File;
     use std::io::BufWriter;
     use nalgebra::{DMatrix, Vector3};
-    use crate::data::{AddFieldComp, FieldData};
-    use crate::mesh::{CellShape, UnstructuredMeshBuilder};
-    use crate::writer::{VTKFormat, VTKOptions, VTKGeometryWriter, VTKWriter, VTKDataWriter, MeshData};
+    use crate::prelude::*;
 
     #[test]
     fn legacy() -> Result<(), Box<dyn Error>> {
