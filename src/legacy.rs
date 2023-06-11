@@ -4,13 +4,15 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::io::Write;
 use std::ops::{Deref, DerefMut};
-use nalgebra::Dim;
+use nalgebra::{Dim, Scalar};
 use nalgebra::Const;
 use nalgebra::Dyn;
 use nalgebra::Matrix;
 use nalgebra::RawStorage;
-use crate::legacy::dataset::{Cells, CellType, Dataset, Points};
-use crate::writer::{Data, MeshData, VTKDataFormat, VTKKeyword, VTKOptions, VTKWriteComp, VTKWriter};
+use num::Zero;
+use crate::data::{FieldData, FieldType};
+use crate::legacy::dataset::{Attrib, Cells, CellType, Dataset, Field, Points, TypedField};
+use crate::writer::{MeshData, VTKDataFormat, VTKDataWriter, VTKGeneralWriter, VTKGeometryWriter, VTKKeyword, VTKOptions, VTKWriteComp, VTKWriter};
 
 #[derive(Clone, Copy, PartialOrd, PartialEq, Debug)]
 enum WriteState {
@@ -464,8 +466,14 @@ impl<W: Write> VTKWriter for LegacyWriter<W> {
         self.state = self.state.advance();
         Ok(())
     }
+}
 
-    fn write_geometry_f32(&mut self, msh: MeshData<f32, 3>) -> Result<(), Self::Error> {
+impl<T, W> VTKGeometryWriter<MeshData<T, 3>> for LegacyWriter<W>
+where
+    T: VTKKeyword + NamedLegacyDataType + Scalar + Zero,
+    W: Write {
+
+    fn write_geometry(&mut self, msh: MeshData<T, 3>) -> Result<(), Self::Error> {
         // check state
         if self.state != WriteState::Geometry {
             return Err(LegacyError::StateError(self.state, "write geometry".to_owned()));
@@ -498,17 +506,48 @@ impl<W: Write> VTKWriter for LegacyWriter<W> {
         self.state = self.state.advance();
         Ok(())
     }
+}
 
-    fn write_data<T, const N: usize>(&mut self, msh: Data<T, N>) -> Result<(), Self::Error> {
+impl<W: Write> VTKDataWriter<FieldData> for LegacyWriter<W> {
+    fn write(&mut self, data: FieldData) -> Result<(), Self::Error> {
         // check state
         if self.state != WriteState::Data {
             return Err(LegacyError::StateError(self.state, "write data".to_owned()));
         }
-        // TODO write data
-        self.state = self.state.advance();
+
+        let array: Vec<_> = data.components.into_iter()
+            .map(|(name, comp)| {
+                match comp.data {
+                    FieldType::U8(value) => TypedField::U8Field(
+                        Field::new(name, value)),
+                    FieldType::U16(value) => TypedField::U16Field(
+                        Field::new(name, value)),
+                    FieldType::U32(value) => TypedField::U32Field(
+                        Field::new(name, value)),
+                    FieldType::U64(value) => TypedField::U64Field(
+                        Field::new(name, value)),
+                    FieldType::I8(value) => TypedField::I8Field(
+                        Field::new(name, value)),
+                    FieldType::I16(value) => TypedField::I16Field(
+                        Field::new(name, value)),
+                    FieldType::I32(value) => TypedField::I32Field(
+                        Field::new(name, value)),
+                    FieldType::I64(value) => TypedField::I64Field(
+                        Field::new(name, value)),
+                    FieldType::F32(value) => TypedField::F32Field(
+                        Field::new(name, value)),
+                    FieldType::F64(value) => TypedField::F64Field(
+                        Field::new(name, value)),
+                }
+            })
+            .collect();
+        let field_data = Attrib::<i32>::FieldData(data.name, array);
+        self.write_component(&field_data)?;
         Ok(())
     }
 }
+
+impl<W: Write> VTKGeneralWriter for LegacyWriter<W> {}
 
 impl<W: Write> Deref for LegacyWriter<W> {
     type Target = W;
@@ -532,10 +571,11 @@ mod test {
     use std::fs::File;
     use std::io::BufWriter;
     use nalgebra::{Const, DMatrix, DVector, Dyn, Matrix, SVector, VecStorage, Vector3};
+    use crate::data::{AddFieldComp, FieldData};
     use crate::legacy::{LegacyError, LegacyWriter};
     use crate::legacy::dataset::{Attrib, Cells, CellType, Dataset, Field, Points, TypedField};
     use crate::mesh::{CellShape, UnstructuredMeshBuilder};
-    use crate::writer::{MeshData, VTKFormat, VTKOptions, VTKWriter};
+    use crate::writer::{MeshData, VTKDataWriter, VTKFormat, VTKGeometryWriter, VTKOptions, VTKWriter};
 
     #[test]
     fn test_write() -> Result<(), Box<dyn Error>> {
@@ -576,7 +616,7 @@ mod test {
                 ],
             ).unwrap()
             .build();
-        writer.write_geometry_f32(MeshData::UnstructuredPolygon(mesh))?;
+        writer.write_geometry(MeshData::UnstructuredPolygon(mesh))?;
 
         // attach data
         let mut cell_data = DMatrix::<i32>::zeros(3, 1);
@@ -592,11 +632,10 @@ mod test {
         velocity_data[(1, 0)] = 1.1;    velocity_data[(1, 1)] = 0.2;    velocity_data[(1, 2)] = 0.2;
         velocity_data[(2, 0)] = 1.2;    velocity_data[(2, 1)] = 0.1;    velocity_data[(2, 2)] = 0.1;
 
-        let field_data = Attrib::<i32>::FieldData("FieldData".to_owned(), vec![
-            TypedField::I32Field(Field::new("cellIds".to_owned(), cell_data)),
-            TypedField::F32Field(Field::new("pressure".to_owned(), pressure_data)),
-        ]);
-        writer.write_component(&field_data)?;
+        let mut field = FieldData::new("TimeStep".to_owned());
+        field.add_field_component("cellIds".to_owned(), cell_data);
+        field.add_field_component("pressure".to_owned(), pressure_data);
+        writer.write(field)?;
         writer.write_component(&Attrib::Vectors("velocity".to_owned(), velocity_data))?;
         Ok(())
     }

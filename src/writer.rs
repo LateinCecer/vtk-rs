@@ -2,6 +2,7 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::io::Write;
 use nalgebra::{Const, Dyn, Matrix, SVector, VecStorage};
+use crate::data::FieldData;
 use crate::legacy::LegacyWriter;
 use crate::mesh::UnstructuredMesh;
 
@@ -31,7 +32,7 @@ impl Display for VTKFormat {
 
 impl VTKFormat {
     /// Creates a writer for the file format
-    pub fn make_writer<W: Write>(&self, write: W, options: VTKOptions) -> impl VTKWriter {
+    pub fn make_writer<W: Write>(&self, write: W, options: VTKOptions) -> impl VTKGeneralWriter {
         match self {
             Self::Legacy => LegacyWriter::new(write, options),
             _ => panic!("")
@@ -78,18 +79,32 @@ pub enum MeshData<T, const DIM: usize> {
     UnstructuredPolygon(UnstructuredMesh<T, DIM>),
 }
 
-pub struct Data<T, const N: usize> {
-    data: Matrix<T, Const<N>, Dyn, VecStorage<T, Const<N>, Dyn>>
-}
-
 pub trait VTKWriter {
     type Error: Error;
 
-
+    /// Writes header data with the specified data.
     fn write_header(&mut self, header: &impl Display) -> Result<(), Self::Error>;
-    fn write_geometry_f32(&mut self, msh: MeshData<f32, 3>) -> Result<(), Self::Error>;
-    fn write_data<T, const N: usize>(&mut self, msh: Data<T, N>) -> Result<(), Self::Error>;
 }
+
+pub trait VTKGeometryWriter<M>: VTKWriter {
+    /// Writes the specified geometry data to `self`
+    fn write_geometry(&mut self, msh: M) -> Result<(), Self::Error>;
+}
+
+pub trait VTKDataWriter<D>: VTKWriter {
+    /// Writes the data contained within `data` to `self`. Since different kinds of data may
+    /// consist of differing data-structures with different representations in the different VTK
+    /// file formats, a writer function has to be implemented specifically for each datatype-writer
+    /// pair by implementing this trait.
+    fn write(&mut self, data: D) -> Result<(), Self::Error>;
+}
+
+/// A general writer combines the `VTKWriter` trait, which is used to implement header and geometry
+/// data, with the `VTKDataWriter` trait for common data types.
+pub trait VTKGeneralWriter: VTKWriter
+    + VTKGeometryWriter<MeshData<f32, 3>>
+    + VTKGeometryWriter<MeshData<f64, 3>>
+    + VTKDataWriter<FieldData> {}
 
 
 /// The `VTKKeyword` trait can be implemented for any datatype that can be referred to as a VTK
