@@ -15,7 +15,7 @@ use crate::legacy::dataset::{Attrib, Cells, CellType, Dataset, Field, Points, Ty
 use crate::writer::{MeshData, VTKDataFormat, VTKDataWriter, VTKGeneralWriter, VTKGeometryWriter, VTKKeyword, VTKOptions, VTKWriteComp, VTKWriter};
 
 #[derive(Clone, Copy, PartialOrd, PartialEq, Debug)]
-enum WriteState {
+pub enum WriteState {
     Header,
     Geometry,
     Data,

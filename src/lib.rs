@@ -1,8 +1,7 @@
-mod mesh;
-mod writer;
+pub mod mesh;
+pub mod writer;
 mod legacy;
-mod data;
-
+pub mod data;
 pub mod prelude;
 
 
