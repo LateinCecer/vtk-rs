@@ -10,7 +10,7 @@ use nalgebra::Dyn;
 use nalgebra::Matrix;
 use nalgebra::RawStorage;
 use num::Zero;
-use crate::data::{FieldData, FieldType};
+use crate::data::{FieldData, FieldType, VectorField};
 use crate::legacy::dataset::{Attrib, Cells, CellType, Dataset, Field, Points, TypedField};
 use crate::writer::{MeshData, VTKDataFormat, VTKDataWriter, VTKGeneralWriter, VTKGeometryWriter, VTKKeyword, VTKOptions, VTKWriteComp, VTKWriter};
 
@@ -542,6 +542,18 @@ impl<W: Write> VTKDataWriter<FieldData> for LegacyWriter<W> {
             })
             .collect();
         let field_data = Attrib::<i32>::FieldData(data.name, array);
+        self.write_component(&field_data)?;
+        Ok(())
+    }
+}
+
+impl<W: Write, T: NamedLegacyDataType + VTKKeyword + Clone> VTKDataWriter<VectorField<T>> for LegacyWriter<W> {
+    fn write(&mut self, data: VectorField<T>) -> Result<(), Self::Error> {
+        if self.state != WriteState::Data {
+            return Err(LegacyError::StateError(self.state, "write data".to_owned()));
+        }
+
+        let field_data = Attrib::Vectors(data.name, data.data);
         self.write_component(&field_data)?;
         Ok(())
     }

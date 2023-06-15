@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use nalgebra::DMatrix;
+use nalgebra::{Const, DMatrix, Dyn, Matrix, VecStorage};
 
 /// `FieldData` contains generalized field data that can be written (or read) from a VTK file. Each
 /// `FieldData` instance has a name and a list of components, where each component represents one
@@ -19,14 +19,15 @@ use nalgebra::DMatrix;
 /// use std::fs::File;
 /// use std::io::BufWriter;
 /// use nalgebra::DMatrix;
+/// use vtk_rs::prelude::*;
 ///
 /// let num_cells = 1000;
-/// let mut timestep = FieldData::new("physical_fields_step_1");
+/// let mut timestep = FieldData::new("physical_fields_step_1".to_owned());
 /// timestep.add_field_component("pressure".to_owned(), DMatrix::zeros(num_cells, 1));
 /// timestep.add_field_component("velocity".to_owned(), DMatrix::zeros(num_cells, 2));
 ///
 /// let file_writer = BufWriter::new(File::create("test.vtk").unwrap());
-/// let writer = VTKFormat::Legacy.make_writer(file_writer, VTKOptions::default());
+/// let mut writer = VTKFormat::Legacy.make_writer(file_writer, VTKOptions::default());
 /// writer.write_header("field component example").unwrap();
 /// writer.write_geometry(create_mesh()).unwrap();
 /// writer.write(timestep).unwrap()
@@ -43,6 +44,7 @@ pub trait AddFieldComp<T> {
     /// # Example
     /// ````rust
     /// use nalgebra::{DMatrix, DVector};
+    /// use vtk_rs::prelude::*;
     ///
     /// let n = 100;
     /// let mut field_data = FieldData::new("some_data".to_owned());
@@ -117,5 +119,19 @@ where FieldType: From<T> {
             data: FieldType::from(data),
         };
         self.components.insert(name, comp);
+    }
+}
+
+pub struct VectorField<T> {
+    pub data: Matrix<T, Const<3>, Dyn, VecStorage<T, Const<3>, Dyn>>,
+    pub name: String,
+}
+
+impl<T> VectorField<T> {
+    pub fn new(name: String, mat: Matrix<T, Const<3>, Dyn, VecStorage<T, Const<3>, Dyn>>) -> Self {
+        VectorField {
+            data: mat,
+            name
+        }
     }
 }

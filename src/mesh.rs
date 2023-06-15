@@ -4,6 +4,7 @@ use nalgebra::{Scalar, SVector};
 
 #[derive(Clone, PartialOrd, PartialEq)]
 pub enum CellShapeName {
+    Line,
     Triangle,
     Rectangle,
     Tetrahedron,
@@ -71,6 +72,17 @@ impl CellShape {
     /// Returns the number of faces for this cell shape
     pub fn num_faces(&self) -> usize {
         self.faces.len()
+    }
+
+    pub fn line() -> Self {
+        CellShape {
+            num_vertices: 2,
+            faces: vec![
+                CellFace { num_vertices: 1, indices: vec![0] },
+                CellFace { num_vertices: 1, indices: vec![1] },
+            ],
+            name: CellShapeName::Line,
+        }
     }
 
     pub fn triangle() -> Self {

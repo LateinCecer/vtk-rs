@@ -11,7 +11,8 @@ mod tests {
     use std::error::Error;
     use std::fs::File;
     use std::io::BufWriter;
-    use nalgebra::{DMatrix, Vector3};
+    use nalgebra::{Const, DMatrix, Dyn, Matrix, VecStorage, Vector3};
+    use crate::data::VectorField;
     use crate::prelude::*;
 
     #[test]
@@ -53,7 +54,7 @@ mod tests {
         pressure_data[(0, 0)] = 0.01;
         pressure_data[(1, 0)] = 0.3;
         pressure_data[(2, 0)] = 0.2;
-        let mut velocity_data = DMatrix::<f32>::zeros(3, 3);
+        let mut velocity_data = Matrix::<f32, Const<3>, Dyn, VecStorage<f32, Const<3>, Dyn>>::zeros(3);
         velocity_data[(0, 0)] = 1.0;    velocity_data[(0, 1)] = 0.3;    velocity_data[(0, 2)] = 0.3;
         velocity_data[(1, 0)] = 1.1;    velocity_data[(1, 1)] = 0.2;    velocity_data[(1, 2)] = 0.2;
         velocity_data[(2, 0)] = 1.2;    velocity_data[(2, 1)] = 0.1;    velocity_data[(2, 2)] = 0.1;
@@ -61,8 +62,10 @@ mod tests {
         let mut field = FieldData::new("TimeStep".to_owned());
         field.add_field_component("cellIds".to_owned(), cell_data);
         field.add_field_component("pressure".to_owned(), pressure_data);
-        field.add_field_component("velocity".to_owned(), velocity_data);
         writer.write(field)?;
+
+        let velocity = VectorField::new("U".to_owned(), velocity_data);
+        writer.write(velocity)?;
         Ok(())
     }
 }

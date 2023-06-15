@@ -2,7 +2,7 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::io::Write;
 use nalgebra::{Const, Dyn, Matrix, SVector, VecStorage};
-use crate::data::FieldData;
+use crate::data::{FieldData, VectorField};
 use crate::legacy::LegacyWriter;
 use crate::mesh::UnstructuredMesh;
 
@@ -104,7 +104,9 @@ pub trait VTKDataWriter<D>: VTKWriter {
 pub trait VTKGeneralWriter: VTKWriter
     + VTKGeometryWriter<MeshData<f32, 3>>
     + VTKGeometryWriter<MeshData<f64, 3>>
-    + VTKDataWriter<FieldData> {}
+    + VTKDataWriter<FieldData>
+    + VTKDataWriter<VectorField<f32>>
+    + VTKDataWriter<VectorField<f64>> {}
 
 
 /// The `VTKKeyword` trait can be implemented for any datatype that can be referred to as a VTK

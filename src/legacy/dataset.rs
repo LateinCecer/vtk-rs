@@ -1,11 +1,24 @@
 use std::io::Write;
-use std::marker::PhantomData;
-use std::ops::{Deref, Index, IndexMut};
-use nalgebra::{Const, DMatrix, DVector, Dyn, Matrix, MatrixView, MatrixViewMut, Scalar, SimdValue, SMatrix, SVector, U1, VecStorage, Vector3, Vector4};
+use std::ops::{Index, IndexMut};
+use nalgebra::Scalar;
+use nalgebra::MatrixViewMut;
+use nalgebra::MatrixView;
+use nalgebra::Matrix;
+use nalgebra::Dyn;
+use nalgebra::DVector;
+use nalgebra::DMatrix;
+use nalgebra::Const;
+use nalgebra::SMatrix;
+use nalgebra::SVector;
+use nalgebra::U1;
+use nalgebra::VecStorage;
+use nalgebra::Vector4;
 use num::Zero;
-use crate::legacy::{LegacyDataType, LegacyError, LegacyWriter, NamedLegacyDataType};
+use crate::legacy::LegacyError;
+use crate::legacy::LegacyWriter;
+use crate::legacy::NamedLegacyDataType;
 use crate::mesh::{CellShape, CellShapeName};
-use crate::writer::{VTKDataFormat, VTKKeyword, VTKOptions, VTKWriteComp};
+use crate::writer::{VTKDataFormat, VTKKeyword, VTKWriteComp};
 
 
 macro_rules! impl_veclike(
@@ -224,6 +237,7 @@ impl From<CellShape> for CellType {
             CellShapeName::Tetrahedron => Self::Tetra,
             CellShapeName::Prism => Self::Wedge,
             CellShapeName::Cube => Self::Voxel,
+            CellShapeName::Line => Self::Line,
         }
     }
 }
