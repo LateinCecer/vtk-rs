@@ -236,7 +236,7 @@ impl From<CellShape> for CellType {
             CellShapeName::Rectangle => Self::Quad,
             CellShapeName::Tetrahedron => Self::Tetra,
             CellShapeName::Prism => Self::Wedge,
-            CellShapeName::Cube => Self::Voxel,
+            CellShapeName::Cube => Self::Hexahedron,
             CellShapeName::Line => Self::Line,
         }
     }

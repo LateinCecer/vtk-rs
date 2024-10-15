@@ -651,4 +651,54 @@ mod test {
         writer.write_component(&Attrib::Vectors("velocity".to_owned(), velocity_data))?;
         Ok(())
     }
+
+    #[test]
+    fn test_hexahedron() -> Result<(), LegacyError> {
+        let file = File::create("test.vtk")?;
+        let options = VTKOptions {
+            ..Default::default()
+        };
+        let mut writer = LegacyWriter::new(BufWriter::new(file), options);
+        writer.write_header(&"Generated with vtk-rs (https://github.com/LateinCecer/vtk-rs)".to_owned())?;
+
+        // write some unstructured mesh data with hexahedral polygon data
+        let mesh = UnstructuredMeshBuilder::<f32, 3>::new()
+            .add_region(
+                "main".to_owned(),
+                CellShape::cube(),
+                vec![
+                    Vector3::new(0.0, 0.0, 0.0),    // 0
+                    Vector3::new(1.0, 0.0, 0.0),    // 1
+                    Vector3::new(0.0, 0.0, 1.0),    // 2
+                    Vector3::new(1.0, 0.0, 1.0),    // 3
+
+                    Vector3::new(0.0, 1.0, 0.0),    // 4
+                    Vector3::new(1.0, 1.0, 0.0),    // 5
+                    Vector3::new(0.0, 1.0, 1.0),    // 6
+                    Vector3::new(1.0, 1.0, 1.0),    // 7
+                ],
+                vec![
+                    0, 1, 5, 4, 2, 3, 7, 6,
+                ],
+            ).unwrap()
+            .build();
+        writer.write_geometry(MeshData::UnstructuredPolygon(mesh))?;
+
+        // attach cell data
+        let mut cell_data = DMatrix::<i32>::zeros(1, 1);
+        cell_data[(0, 0)] = 0;
+        let mut pressure_data = DMatrix::<f32>::zeros(1, 1);
+        pressure_data[(0, 0)] = 0.01;
+        let mut velocity_data = Matrix::<f32, Const<3>, Dyn, VecStorage<f32, Const<3>, Dyn>>::zeros(1);
+        velocity_data[(0, 0)] = 1.0;
+        velocity_data[(1, 0)] = 0.3;
+        velocity_data[(2, 0)] = 0.2;
+
+        let mut field = FieldData::new("TimeStep".to_owned());
+        field.add_field_component("cellIds".to_owned(), cell_data);
+        field.add_field_component("pressure".to_owned(), pressure_data);
+        writer.write(field)?;
+        writer.write_component(&Attrib::Vectors("velocity".to_owned(), velocity_data))?;
+        Ok(())
+    }
 }
