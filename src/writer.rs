@@ -1,10 +1,9 @@
-use std::error::Error;
-use std::fmt::{Display, Formatter};
-use std::io::Write;
-use nalgebra::{Const, Dyn, Matrix, SVector, VecStorage};
 use crate::data::{FieldData, VectorField};
 use crate::legacy::LegacyWriter;
 use crate::mesh::UnstructuredMesh;
+use std::error::Error;
+use std::fmt::{Display, Formatter};
+use std::io::Write;
 
 /// The VTK format describes the format of the VTK format. Currently, there are three major formats
 /// implemented for Paraview: Legacy, XML and HDF. Since Legacy is the simplest to implement, this
