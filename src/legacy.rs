@@ -72,6 +72,8 @@ impl From<std::io::Error> for LegacyError {
 pub trait LegacyDataType {
     /// can be used to write data to the writer
     fn write<W: Write>(&self, writer: &mut W, format: &VTKDataFormat) -> Result<(), LegacyError>;
+
+    #[allow(dead_code)]
     fn write_mapped<W: Write>(&self, writer: &mut W, format: &VTKDataFormat) -> Result<(), LegacyError>;
 }
 

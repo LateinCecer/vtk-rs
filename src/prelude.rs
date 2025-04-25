@@ -14,6 +14,7 @@ pub use crate::data::FieldComponent;
 pub use crate::data::FieldType;
 pub use crate::data::VectorField;
 pub use crate::data::AddFieldComp;
+pub use crate::legacy::LegacyWriter;
 
 pub use crate::mesh::UnstructuredMesh;
 pub use crate::mesh::UnstructuredMeshBuilder;

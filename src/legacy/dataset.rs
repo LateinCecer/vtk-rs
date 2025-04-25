@@ -74,24 +74,28 @@ pub struct Points<T: VTKKeyword>(Matrix<T, Const<3>, Dyn, VecStorage<T, Const<3>
 impl<T: VTKKeyword + Scalar + Zero> Points<T> {
     #[allow(dead_code)]
     /// Creates a new point list initialized with `zero` values.
+    #[allow(dead_code)]
     pub fn new(n: usize) -> Self {
         Points(Matrix::<T, Const<3>, Dyn, VecStorage<T, Const<3>, Dyn>>::zeros(n))
     }
 
     #[allow(dead_code)]
     /// Returns the number of points in the point list.
+    #[allow(dead_code)]
     pub fn len(&self) -> usize {
         self.0.ncols()
     }
 
     #[allow(dead_code)]
     /// Returns a view into the point vector at the specified index from the index list.
+    #[allow(dead_code)]
     pub fn vec(&self, idx: usize) -> MatrixView<T, Const<3>, U1, U1, Const<3>> {
         self.0.column(idx)
     }
 
     #[allow(dead_code)]
     /// Returns a mutable view into the point vector at the specified index from the index list.
+    #[allow(dead_code)]
     pub fn vec_mut(&mut self, idx: usize) -> MatrixViewMut<T, Const<3>, U1, U1, Const<3>> {
         self.0.column_mut(idx)
     }
