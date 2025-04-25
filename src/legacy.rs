@@ -1,18 +1,18 @@
 mod dataset;
 
-use std::error::Error;
-use std::fmt::{Display, Formatter};
-use std::io::Write;
-use std::ops::{Deref, DerefMut};
-use nalgebra::{Dim, Scalar};
+use crate::data::{FieldData, FieldType, VectorField};
+use crate::legacy::dataset::{Attrib, CellType, Cells, Dataset, Field, Points, TypedField};
+use crate::writer::{MeshData, VTKDataFormat, VTKDataWriter, VTKGeneralWriter, VTKGeometryWriter, VTKKeyword, VTKOptions, VTKWriteComp, VTKWriter};
 use nalgebra::Const;
 use nalgebra::Dyn;
 use nalgebra::Matrix;
 use nalgebra::RawStorage;
+use nalgebra::{Dim, Scalar};
 use num::Zero;
-use crate::data::{FieldData, FieldType, VectorField};
-use crate::legacy::dataset::{Attrib, Cells, CellType, Dataset, Field, Points, TypedField};
-use crate::writer::{MeshData, VTKDataFormat, VTKDataWriter, VTKGeneralWriter, VTKGeometryWriter, VTKKeyword, VTKOptions, VTKWriteComp, VTKWriter};
+use std::error::Error;
+use std::fmt::{Display, Formatter};
+use std::io::Write;
+use std::ops::{Deref, DerefMut};
 
 #[derive(Clone, Copy, PartialOrd, PartialEq, Debug)]
 pub enum WriteState {
@@ -69,13 +69,13 @@ impl From<std::io::Error> for LegacyError {
     }
 }
 
-trait LegacyDataType {
+pub trait LegacyDataType {
     /// can be used to write data to the writer
     fn write<W: Write>(&self, writer: &mut W, format: &VTKDataFormat) -> Result<(), LegacyError>;
     fn write_mapped<W: Write>(&self, writer: &mut W, format: &VTKDataFormat) -> Result<(), LegacyError>;
 }
 
-trait NamedLegacyDataType: LegacyDataType {
+pub trait NamedLegacyDataType: LegacyDataType {
     fn dt_name() -> &'static str;
 }
 
@@ -437,6 +437,7 @@ impl<W: Write> LegacyWriter<W> {
         val.write(&mut self.writer, &self.format)
     }
 
+    #[allow(dead_code)]
     fn write_mapped_data<T: LegacyDataType>(&mut self, val: &T) -> Result<(), LegacyError> {
         val.write_mapped(&mut self.writer, &self.format)
     }
@@ -579,15 +580,15 @@ impl<W: Write> DerefMut for LegacyWriter<W> {
 
 #[cfg(test)]
 mod test {
+    use crate::data::{AddFieldComp, FieldData};
+    use crate::legacy::dataset::Attrib;
+    use crate::legacy::{LegacyError, LegacyWriter};
+    use crate::mesh::{CellShape, UnstructuredMeshBuilder};
+    use crate::writer::{MeshData, VTKDataWriter, VTKFormat, VTKGeometryWriter, VTKOptions, VTKWriter};
+    use nalgebra::{Const, DMatrix, Dyn, Matrix, VecStorage, Vector3};
     use std::error::Error;
     use std::fs::File;
     use std::io::BufWriter;
-    use nalgebra::{Const, DMatrix, DVector, Dyn, Matrix, SVector, VecStorage, Vector3};
-    use crate::data::{AddFieldComp, FieldData};
-    use crate::legacy::{LegacyError, LegacyWriter};
-    use crate::legacy::dataset::{Attrib, Cells, CellType, Dataset, Field, Points, TypedField};
-    use crate::mesh::{CellShape, UnstructuredMeshBuilder};
-    use crate::writer::{MeshData, VTKDataWriter, VTKFormat, VTKGeometryWriter, VTKOptions, VTKWriter};
 
     #[test]
     fn test_write() -> Result<(), Box<dyn Error>> {

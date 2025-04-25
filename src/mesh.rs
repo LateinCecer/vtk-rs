@@ -60,7 +60,7 @@ impl CellShape {
     /// useful for converting the mesh into other formats.
     pub fn face_iter<'a, T, const DIM: usize>(
         &'a self, msh: &'a UnstructuredMesh<T, DIM>, mesh_id: usize
-    ) -> FaceIter<'_, T, DIM> {
+    ) -> FaceIter<'a, T, DIM> {
         FaceIter {
             shape: self,
             mesh_id,

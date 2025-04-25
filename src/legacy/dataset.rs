@@ -72,21 +72,25 @@ impl VTKKeyword for Spacing {
 pub struct Points<T: VTKKeyword>(Matrix<T, Const<3>, Dyn, VecStorage<T, Const<3>, Dyn>>);
 
 impl<T: VTKKeyword + Scalar + Zero> Points<T> {
+    #[allow(dead_code)]
     /// Creates a new point list initialized with `zero` values.
     pub fn new(n: usize) -> Self {
         Points(Matrix::<T, Const<3>, Dyn, VecStorage<T, Const<3>, Dyn>>::zeros(n))
     }
 
+    #[allow(dead_code)]
     /// Returns the number of points in the point list.
     pub fn len(&self) -> usize {
         self.0.ncols()
     }
 
+    #[allow(dead_code)]
     /// Returns a view into the point vector at the specified index from the index list.
     pub fn vec(&self, idx: usize) -> MatrixView<T, Const<3>, U1, U1, Const<3>> {
         self.0.column(idx)
     }
 
+    #[allow(dead_code)]
     /// Returns a mutable view into the point vector at the specified index from the index list.
     pub fn vec_mut(&mut self, idx: usize) -> MatrixViewMut<T, Const<3>, U1, U1, Const<3>> {
         self.0.column_mut(idx)
@@ -162,7 +166,9 @@ impl_coord!(ZCoords);
 
 
 
-struct PrimitiveData(Vec<DVector<i32>>);
+pub struct PrimitiveData(Vec<DVector<i32>>);
+
+#[allow(dead_code)]
 pub enum Primitive {
     Vertices(PrimitiveData),
     Lines(PrimitiveData),
@@ -354,6 +360,7 @@ impl<W: Write> VTKWriteComp<LegacyWriter<W>> for CellType {
     }
 }
 
+#[allow(dead_code)]
 pub enum Dataset<T: VTKKeyword> {
     StructuredPoints(Dims, Origin, Spacing),
     StructuredGrid(Dims, Points<T>),
@@ -442,6 +449,7 @@ impl<T: VTKKeyword + NamedLegacyDataType + Scalar + Zero, W: Write> VTKWriteComp
 pub type ColorScalar = u8;
 /// An rgba color value consists of 4 u8 values (one for each color channel), mapped in the range
 /// 0..1.
+#[allow(dead_code)]
 pub type RgbaValue = Vector4<u8>;
 
 
@@ -520,6 +528,7 @@ impl<T: VTKKeyword + NamedLegacyDataType, W: Write> VTKWriteComp<LegacyWriter<W>
 }
 
 
+#[allow(dead_code)]
 pub enum Attrib<T: VTKKeyword> {
     /// Scalar definition includes specification of a lookup table. The definition of a lookup table
     /// is optional. If not specified, the default VTK table will be used (and tableName should be
